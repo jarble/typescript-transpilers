@@ -44,7 +44,7 @@ statements = head:statement tail:(_ statement)* {
 abstract_method = "abstract" __ a:interface_method _ ";" {return function(name1){return a+";";};}
 
 interface_method = name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ t1:(":" _ type _ / "") {
-		let return_type = "interface{}";
+		let return_type = "dynamic";
 		let type_params_string = "";
 		if(t1.length > 0){
 			return_type = t1[2];
@@ -52,7 +52,7 @@ interface_method = name:var_name _ type_params:("<" _ type_parameters _ ">" _ / 
 		if(type_params.length > 0){
 			type_params_string = "<"+type_params[2]+"> "; //how are pure virtual generic functions supposed to work?
 		}
-		return "virtual " + return_type +" "+ name+"("+b+") = 0";
+		return "public " + return_type +" "+ name+"("+b+") = 0";
 	}
 
 interface_statement = interface_method
@@ -71,7 +71,7 @@ class_statements = head:class_statement tail:( _ class_statement)* {
     }
 
 instance_method = name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ params:function_parameters _ ")" _ t2:(":" _ type _ / "") "{" _ c:statements _ "}" {
-		let t1 = "decltype("+initial_value[returned]()+")";
+		let t1 = "dynamic";
 		if(t2.length > 0){
 			t1 = t2[2];
 		}
@@ -343,7 +343,7 @@ function_call_ = "(" _ a2:exprs _ ")" {return "("+a2+")";}
 
 not_expr= a1:"!" _ a2:access_array {let to_return = "!"+a2; expression_types[a2] = "bool"; expression_types[to_return] = "bool"; return to_return;} / access_array
 
-object_member = a1:var_name _ ":" _ e1:e {return "."+a1+"="+e1;}
+object_member = a1:var_name _ ":" _ e1:e {return a1+"="+e1;}
 
 object_members = head:object_member tail:(_ (',') _ object_member)* {
       return tail.reduce(function(result, element) {
@@ -354,7 +354,7 @@ object_members = head:object_member tail:(_ (',') _ object_member)* {
 enum_member = a1:var_name e1:(_ "=" _ e1:e / "") {
 	if(e1.length > 0)
 	return +a1+"="+e1[3];
-	else return a1;
+	return a1;
 }
 
 enum_members = head:enum_member tail:(_ (',') _ enum_member)* {
@@ -371,16 +371,13 @@ callable=
 	  return type_in_arr+"[]{"+a+"}"
 	}
 	/ "function" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
-		return "[]("+params+"){"+body+"}"
+		return "(("+params+") => "+body+")"
 	}
 	/ "function" _ "(" _ params:function_parameters _ ")" _ ":" _ t1:type _ "{" _ body:statements _ "}" {
-		return "[]("+params+") ->"+t1+"{"+body+"}"
+		return "(("+params+") => "+body+")"
 	}
 	/ "class" _ super_class:("extends" __ var_name / "") _ "{" _ a4:class_statements _ "}" {
-		if(super_class.length > 0){
-			return "struct{usingnamespace "+super_class[3]+";"+a4(name)+"};";
-		}
-		return "const "+name+" = struct{"+a4(name)+"};";
+		return "new {"+a4(name)+"}"; //anonymous type
 	}
 	/ dot_expr
     / STRING_LITERAL
@@ -391,7 +388,6 @@ dot_expr = head:var_name tail:(_ ('.') _ var_name)* {
         return result + element[1] + element[3];
       }, head);
       return "TypeScript."+to_return;
-	  else return to_return;
     }
 
 

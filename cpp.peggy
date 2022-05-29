@@ -96,6 +96,7 @@ constructor = "constructor" _ "(" _ params:function_parameters _ ")" _ "{" _ bod
 }
 
 class_statement = constructor / abstract_method / instance_method  / static_method / a:class_member _ ";" {return function(name1){return a(name1) + ","}}
+	/ "static" __ a:var_name _ ":" _ t1:type _ "=" _ expr:e {"static " + t1 + " " + a + " = " + expr+";";}
 
 class_member = a:var_name _ ":" _ b:type {
 	if(class_members !== "") class_members += ","; class_members += "."+a+"=undefined";
