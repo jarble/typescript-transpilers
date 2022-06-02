@@ -124,6 +124,8 @@ class_=
 	}
 	/ "interface" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a:interface_statements _ "}"
 	{ return "class "+name+"{public:"+a+"}";}
+	/ "enum" __ a:var_name __ "{" __ b:identifiers __ "}" {return "enum "+a+"{"+b+"};"}
+
 
 statement =
 	a1:statement_ {return a1;}
