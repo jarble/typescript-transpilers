@@ -52,7 +52,7 @@ interface_statement = name:var_name _ type_params:("<" _ type_parameters _ ">" _
 		}
 		return "func " + name+type_params_string+"("+b+")->"+return_type;
 	}
-	/ function_parameter
+	/ a:function_parameter {return "var "+a;}
 
 interface_statements = head:interface_statement ";" tail:(_ interface_statement _ ";")* {
       return tail.reduce(function(result, element) {
