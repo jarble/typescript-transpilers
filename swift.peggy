@@ -125,6 +125,7 @@ class_=
 		return "public "+abstract_string+"class "+name+type_params_string+superclass_string+implements_string+"{"+class_body+"};";
 	}
 	/ "interface" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a:interface_statements _ "}"
+	/ "enum" __ a:var_name _ "{" _ b:enum_members _ "}" {return "enum "+a+"{"+b+"}";}
 	{ return "protocol "+name+"{"+a+"}";}
 
 statement =
@@ -367,7 +368,7 @@ enum_member = a1:var_name e1:(_ "=" _ e1:e / "") {
 
 enum_members = head:enum_member tail:(_ (',') _ enum_member)* {
       return tail.reduce(function(result, element) {
-        return result+","+element[3];
+        return result+","+"case "+element[3];
       }, head);
     } / "" {return "";}
 

@@ -14,7 +14,7 @@ function replaceAll(str1,str2,str){
     let list3 = str.split(",");
     var mapObj = {};
     for(let i = 0; i < list1.length; i++){
-        mapObj[list1[i]] = list3[i];
+        mapObj[list1[i]] = list3[i];f
     }
     var re = new RegExp("\\b(?:"+Object.keys(mapObj).join("|")+")\\b","g");
 
@@ -123,6 +123,8 @@ class_=
 		return to_return;
 	}
 	/ "interface" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a:interface_statements _ "}"
+	/ "enum" __ a:var_name _ "{" _ b:enum_members _ "}" {return "enum "+a+"{"+b+"}";}
+
 	{ return "trait "+name+"{public:"+a+"}";}
 
 statement =
