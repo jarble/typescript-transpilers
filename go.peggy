@@ -163,6 +163,8 @@ case_statements= a1:case_statements_ a2:(_ default_statement / "") {return a1+a2
 
 default_statement = "default" _ ":" _ a4:statements {return ["default:",a4].join("")}
 
+const_or_var = ("let" / "var") {return "var ";} / "const" {return "const "};
+
 statement_with_semicolon
    = 
    "return" __ a2:e  {
@@ -172,8 +174,11 @@ statement_with_semicolon
 	}
 		
    / "return"  {return "return";}
-   / ("let" / "var") __ name:var_name _ ":" _ t1:type _ "=" _ val:e {
-		initial_value[name]=function(){return val;}; return t1+" " + name + " = "+val;
+   / c:const_or_var __ name:var_name _ ":" _ t1:type _ "=" _ val:e {
+		initial_value[name]=function(){return val;}; return c + name + " " + t1 + " = "+val;
+   }
+   / c:const_or_var __ name:var_name _ ":" _ t1:type _ "=" _ val:e {
+		initial_value[name]=function(){return val;}; return c + name + " = "+val;
    }
    / "const" __ name:var_name _ ":" _ t1:type _ "=" _ val:e {
 		initial_value[name]=function(){return val;}; return "const " + " "+t1+" = "+val;
