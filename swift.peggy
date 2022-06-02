@@ -353,7 +353,7 @@ function_call_ = "(" _ a2:exprs _ ")" {return "("+a2+")";}
 
 not_expr= a1:"!" _ a2:access_array {let to_return = "!"+a2; expression_types[a2] = "bool"; expression_types[to_return] = "bool"; return to_return;} / access_array
 
-object_member = a1:var_name _ ":" _ e1:e {return "."+a1+"="+e1;}
+object_member = a1:var_name _ ":" _ e1:e {return a1+":"+e1;}
 
 object_members = head:object_member tail:(_ (',') _ object_member)* {
       return tail.reduce(function(result, element) {
@@ -379,7 +379,7 @@ callable=
     / "[" a2:array_exprs "]" {return type_in_arr+"[]{"+a2[1]+"}";}
 	/ "{" _ a:object_members _ "}" {
 	
-	  return type_in_arr+"[]{"+a+"}"
+	  return "("+a+")"
 	
 	
 	}
