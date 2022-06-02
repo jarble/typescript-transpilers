@@ -368,7 +368,7 @@ enum_members = head:enum_member tail:(_ (',') _ enum_member)* {
 callable=
 	"(" _ a2:e _ ")" {let to_return  ="("+a2+")"; expression_types[to_return] = expression_types[a2]; return to_return;}
 	/ "new" __ a:dot_expr "(" b:exprs ")" {return a+".init("+b+")"}
-    / "[" a2:array_exprs "]" {return "{"+a2[1]+"}";}
+    / "[" a2:array_exprs "]" {return "new[]{"+a2[1]+"}";}
 	/ "{" _ a:object_members _ "}" {
 	  return type_in_arr+"{"+a+"}"
 	}
