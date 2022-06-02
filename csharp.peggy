@@ -370,13 +370,13 @@ callable=
 	/ "new" __ a:dot_expr "(" b:exprs ")" {return a+".init("+b+")"}
     / "[" a2:array_exprs "]" {return "new[]{"+a2[1]+"}";}
 	/ "{" _ a:object_members _ "}" {
-	  return type_in_arr+"{"+a+"}"
+	  return "new {"+a+"}"
 	}
 	/ "function" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
-		return "(("+params+") => "+body+")"
+		return "(("+params+") => {"+body+"})"
 	}
 	/ "function" _ "(" _ params:function_parameters _ ")" _ ":" _ t1:type _ "{" _ body:statements _ "}" {
-		return "(("+params+") => "+body+")"
+		return "(("+params+") => {"+body+"})"
 	}
 	/ "class" _ super_class:("extends" __ var_name / "") _ "{" _ a4:class_statements _ "}" {
 		return "new {"+a4(name)+"}"; //anonymous type
