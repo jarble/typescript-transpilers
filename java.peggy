@@ -373,10 +373,10 @@ callable=
 	  return type_in_arr+"[]{"+a+"}"
 	}
 	/ "function" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
-		return "[]("+params+"){"+body+"}"
+		return "(("+params+")->{"+body+"})"
 	}
 	/ "function" _ "(" _ params:function_parameters _ ")" _ ":" _ t1:type _ "{" _ body:statements _ "}" {
-		return "[]("+params+") ->"+t1+"{"+body+"}"
+		return "(("+params+") ->{"+body+"})"
 	}
 	/ "class" _ super_class:("extends" __ var_name / "") _ "{" _ a4:class_statements _ "}" {
 		if(super_class.length > 0){
@@ -398,9 +398,9 @@ dot_expr = head:var_name tail:(_ ('.') _ var_name)* {
 
 
 function_parameter = a1:var_name _ ":" _ t1:type _ "=" _ d:e  {return [t1+" "+a1+" = " + d];}
-/ a1:var_name _ "=" _ d:e  {return ["dynamic "+a1+" = " + d];}
+/ a1:var_name _ "=" _ d:e  {return ["Object "+a1+" = " + d];}
 / a1:var_name _ ":" _ t1:type {return [t1+" "+a1];}
-/ a1:var_name {return ["dynamic "+a1];}
+/ a1:var_name {return ["Object "+a1];}
 
 function_parameters = head:function_parameter tail:(_ (',') _ function_parameter)* {
       return (tail.reduce(function(result, element) {
