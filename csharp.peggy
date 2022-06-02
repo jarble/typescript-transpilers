@@ -122,7 +122,7 @@ class_=
 		return to_return;
 	}
 	/ "interface" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a:interface_statements _ "}"
-	{ return "class "+name+"{public:"+a+"}";}
+	{ return "interface "+name+"{"+a+"}";}
     / "enum" __ a:var_name __ "{" __ b:identifiers __ "}" {return "enum "+a+"{"+b+"}"}
 
 
@@ -151,7 +151,7 @@ statement_
 	}
     / "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements _ a6:elif {expression_types[a3] = "bool"; return ["if ",a3,"{",a5,"}",a6].join("");}
 	/ "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements {expression_types[a3] = "bool"; return ["if ",a3,"{",a5,"}"].join("");}
-    / "function" __ name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ t1:(":" _ type _ / "") "{" _ c:statements _ "}" {
+    / "function" __ name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:identifiers _ ")" _ t1:(":" _ type _ / "") "{" _ c:statements _ "}" {
 		let return_type = "dynamic";
 		if(t1.length > 0){
 			return_type = t1[2]; 
@@ -368,7 +368,7 @@ enum_members = head:enum_member tail:(_ (',') _ enum_member)* {
 callable=
 	"(" _ a2:e _ ")" {let to_return  ="("+a2+")"; expression_types[to_return] = expression_types[a2]; return to_return;}
 	/ "new" __ a:dot_expr "(" b:exprs ")" {return a+".init("+b+")"}
-    / "[" a2:array_exprs "]" {return type_in_arr+"[]{"+a2[1]+"}";}
+    / "[" a2:array_exprs "]" {return "{"+a2[1]+"}";}
 	/ "{" _ a:object_members _ "}" {
 	  return type_in_arr+"{"+a+"}"
 	}
