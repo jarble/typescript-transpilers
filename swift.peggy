@@ -125,8 +125,9 @@ class_=
 		return "public "+abstract_string+"class "+name+type_params_string+superclass_string+implements_string+"{"+class_body+"};";
 	}
 	/ "interface" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a:interface_statements _ "}"
-	/ "enum" __ a:var_name _ "{" _ b:enum_members _ "}" {return "enum "+a+"{"+b+"}";}
 	{ return "protocol "+name+"{"+a+"}";}
+	/ "enum" __ a:var_name _ "{" _ b:enum_members _ "}" {return "enum "+a+"{"+b+"}";}
+
 
 statement =
 	a1:statement_ {return a1;}
