@@ -426,7 +426,7 @@ elif_ = a1:else_if _ "(" _ a3:e _ ")" _ a5:bracket_statements {return "else if("
 
 var_name= name:IDENTIFIER {
 let to_return = "";
-if(name == "this") to_return = "self"; else if(["true","false","undefined","void","break","continue","arguments"].includes(name)) to_return = name; else to_return = (name === "number"?"float":name==="boolean"?"bool":"compiled_"+name);
+if(name == "this") to_return = "self"; else if(["true","false","undefined","void","break","continue","arguments"].includes(name)) to_return = name; else to_return = (name === "number"?"float64":name==="boolean"?"bool":"compiled_"+name);
 if(initial_value[to_return] === undefined){initial_value[to_return] = function(){return to_return;};}
 return to_return;
 }

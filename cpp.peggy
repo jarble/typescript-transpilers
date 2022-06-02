@@ -198,6 +198,9 @@ statement_with_semicolon
    / c1:const_or_var __ name:var_name _ ":" _ t1:type _ "=" _ val:e {
 		initial_value[name]=function(){return val;}; return c1+t1+" " + name + " = "+val;
    }
+   / c1:const_or_var __ name:var_name _ ":" _ t1:type {
+		initial_value[name]=function(){return val;}; return c1+t1+" " + name;
+   }
    / c1:const_or_var __ name:var_name _ "=" _ val:e {
 		initial_value[name]=function(){return val;}; return c1+"auto " + name + " = "+val;
    }
