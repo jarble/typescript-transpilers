@@ -346,11 +346,11 @@ function_call_ = "(" _ a2:exprs _ ")" {return "("+a2+")";}
 
 not_expr= a1:"!" _ a2:access_array {let to_return = "!"+a2; expression_types[a2] = "bool"; expression_types[to_return] = "bool"; return to_return;} / access_array
 
-object_member = a1:var_name _ ":" _ e1:e {return "."+a1+"="+e1;}
+object_member = a1:var_name _ ":" _ e1:e {return "decltype("+e1+") "+a1+" = "+e1+";";}
 
 object_members = head:object_member tail:(_ (',') _ object_member)* {
       return tail.reduce(function(result, element) {
-        return result+","+element[3];
+        return result+element[3];
       }, head);
     } / "" {return "";}
     
@@ -371,7 +371,7 @@ callable=
 	/ "new" __ a:dot_expr "(" b:exprs ")" {return a+".init("+b+")"}
     / "[" a2:array_exprs "]" {return "std::vector{"+a2[1]+"}";}
 	/ "{" _ a:object_members _ "}" {
-	  return type_in_arr+"[]{"+a+"}"
+	  return "[](){struct {"+a+"} anonymous; return anonymous;}()"
 	}
 	/ "function" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
 		return "[]("+params+"){"+body+"}"
