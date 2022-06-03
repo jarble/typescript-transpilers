@@ -387,8 +387,8 @@ callable=
 		return "{("+params+") -> "+t1+" in "+body+"}"
 	}
 	
-	/ "function" _ "(" _ params:function_parameters _ ")" _ ":" _ t1:type _ "{" _ body:statements _ "}" {
-		return "{("+params+") -> "+t1+" in "+body+"}"
+	/ "function" _ "(" _ params:identifiers _ ")" _ "{" _ body:statements _ "}" {
+		return "{("+params+") in "+body+"}"
 	}
 	
 	/ "class" _ super_class:("extends" __ var_name / "") _ "{" _ a4:class_statements _ "}" {
