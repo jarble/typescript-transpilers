@@ -71,7 +71,7 @@ class_statements = head:class_statement tail:( _ class_statement)* {
     }
 
 instance_method = name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ params:function_parameters _ ")" _ t2:(":" _ type _ / "") "{" _ c:statements _ "}" {
-		let t1 = "decltype("+initial_value[returned]()+")";
+		let t1 = "Object";
 		if(t2.length > 0){
 			t1 = t2[2];
 		}
@@ -79,12 +79,12 @@ instance_method = name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "
 	}
 
 static_method = "static" __ name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ (":" _ t2:type _ / "") "{" _ c:statements _ "}" {
-		let t1 = "decltype("+initial_value[returned]()+")";
+		let t1 = "Object";
 		if(t2.length > 0){
 			t1 = t2[2];
 		}
 		if(type_params.length > 0){
-			return function(name1){return "fn "+name+"("+type_params[2]+",arguments:anytype) "+t1+"{"+b+c+"}";};
+			return function(name1){return "static <"+type_params[2]+">"+t1+" "+name+"("+b+"){"+c+"}";}
 		}
 		else{
 			return function(name1){return "static "+t1+" "+name+"("+b+"){"+c+"}";}
@@ -92,7 +92,7 @@ static_method = "static" __ name:var_name _ type_params:("<" _ type_parameters _
 	}
 
 constructor = "constructor" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
-	return function(name1){return "public "+name1+"{"+params+"){"+body+"}";};
+	return function(name1){return "public "+name1+"("+params+"){"+body+"}";};
 }
 
 class_statement = constructor / abstract_method / instance_method  / static_method / a:class_member _ ";" {return function(name1){return a(name1) + ","}}

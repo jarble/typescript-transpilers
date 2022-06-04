@@ -123,7 +123,7 @@ class_=
 		return to_return;
 	}
 	/ "interface" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a:interface_statements _ "}"
-	{ return "trait "+name+"{public:"+a+"}";}
+	{ return "trait "+name+"{"+a+"}";}
 	/ "enum" __ a:var_name _ "{" _ b:enum_members _ "}" {return "enum "+a+"{"+b+"}";}
 
 

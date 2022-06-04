@@ -99,7 +99,7 @@ class_statement = constructor / abstract_method / instance_method  / static_meth
 
 class_member = a:var_name _ ":" _ b:type {
 	if(class_members !== "") class_members += ","; class_members += "."+a+"=undefined";
-	return function(name1){return "public "+b+" "+a;};
+	return function(name1){return a+":"+b;};
 }
 
 access_modifier= "public" / "private"
