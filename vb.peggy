@@ -343,7 +343,7 @@ function_call
 
 function_call_ = "(" _ a2:exprs _ ")" {return "("+a2+")";}
 
-not_expr= a1:"!" _ a2:access_array {let to_return = "(Not "+a2+")"; expression_types[a2] = "bool"; expression_types[to_return] = "bool"; return to_return;} / access_array
+not_expr= a1:"!" _ a2:callable {let to_return = "(Not "+a2+")"; expression_types[a2] = "bool"; expression_types[to_return] = "bool"; return to_return;} / callable
 
 object_member = a1:var_name _ ":" _ e1:e {return "."+a1+" = "+e1;}
 
@@ -365,19 +365,27 @@ enum_members = head:enum_member tail:(_ (',') _ enum_member)* {
       }, head);
     } / "" {return "";}
 
-callable=
-	"(" _ a2:e _ ")" {let to_return  ="("+a2+")"; expression_types[to_return] = expression_types[a2]; return to_return;}
-	/ "new" __ a:dot_expr "(" b:exprs ")" {return a+".init("+b+")"}
-    / "[" a2:array_exprs "]" {return "{"+a2[1]+"}";}
-	/ "{" _ a:object_members _ "}" {
-	  return "New With {Key "+a+"}"
-	}
-	/ "function" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
+anonymous_function = "function" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
 		return "Function("+params+") "+body+" End Function";
 	}
 	/ "function" _ "(" _ params:function_parameters _ ")" _ ":" _ t1:type _ "{" _ body:statements _ "}" {
 		return "Function("+params+") "+body+" End Function";
 	}
+
+anonymous_type = "{" _ a:object_members _ "}" {
+	  return "New With {Key "+a+"}"
+	}
+
+initializer_list = "[" a2:array_exprs "]" {return "{"+a2[1]+"}";}
+
+new_instance = "new" __ a:dot_expr "(" b:exprs ")" {return a+".init("+b+")"}
+
+callable=
+	"(" _ a2:e _ ")" {let to_return  ="("+a2+")"; expression_types[to_return] = expression_types[a2]; return to_return;}
+	/ new_instance
+    / initializer_list
+	/ anonymous_type
+	/ anonymous_function
 	/ dot_expr
     / STRING_LITERAL
     / a:NUMBER {expression_types[a] = "float"; return a;}

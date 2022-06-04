@@ -366,19 +366,27 @@ enum_members = head:enum_member tail:(_ (',') _ enum_member)* {
       }, head);
     } / "" {return "";}
 
-callable=
-	"(" _ a2:e _ ")" {let to_return  ="("+a2+")"; expression_types[to_return] = expression_types[a2]; return to_return;}
-	/ "new" __ a:dot_expr "(" b:exprs ")" {return a+".init("+b+")"}
-    / "[" a2:array_exprs "]" {return type_in_arr+"[]{"+a2[1]+"}";}
-	/ "{" _ a:object_members _ "}" {
-	  return type_in_arr+"[]{"+a+"}"
-	}
-	/ "function" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
+anonymous_function = "function" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
 		return "|"+params+"|{"+body+"}"
 	}
 	/ "function" _ "(" _ params:function_parameters _ ")" _ ":" _ t1:type _ "{" _ body:statements _ "}" {
 		return "[]("+params+") ->"+t1+"{"+body+"}"
 	}
+	
+anonymous_type = "{" _ a:object_members _ "}" {
+	  return type_in_arr+"[]{"+a+"}"
+	}
+
+initializer_list = "[" a2:array_exprs "]" {return type_in_arr+"[]{"+a2[1]+"}";}
+
+new_instance = "new" __ a:dot_expr "(" b:exprs ")" {return a+".init("+b+")"}
+
+callable=
+	"(" _ a2:e _ ")" {let to_return  ="("+a2+")"; expression_types[to_return] = expression_types[a2]; return to_return;}
+	/ new_instance
+    / initializer_list
+	/ anonymous_type
+	/ anonymous_function
 	/ dot_expr
     / STRING_LITERAL
     / a:NUMBER {expression_types[a] = "float"; return a;}

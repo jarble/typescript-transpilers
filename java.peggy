@@ -203,15 +203,15 @@ statement_with_semicolon
    / c1:const_or_var __ name:var_name _ "=" _ val:e {
 		initial_value[name]=function(){return val;}; return c1+"var " + name + " = "+val;
    }
-   / name:assignable _ a2:"=" _ val:e {
+   / name:dot_expr _ a2:"=" _ val:e {
    		initial_value[name]=function(){return val;};
    		if(temp_vars.indexOf(val) !== -1){declared_redundant_vars[val] = name; return "";}
 		else{
 			return name+a2+val;
 		}
    }
-   / a1:assignable _ a2:("++" / "--") {return a1+a2;}
-   / a1:assignable _ a2:("+=" / "%=" / "-=" / "*=" / "/=") _ a3:e {return a1+a2+a3;}
+   / a1:dot_expr _ a2:("++" / "--") {return a1+a2;}
+   / a1:dot_expr _ a2:("+=" / "%=" / "-=" / "*=" / "/=") _ a3:e {return a1+a2+a3;}
    / var_name
 
 
@@ -292,61 +292,12 @@ e1= head:not_expr tail:(_ ('*' / '/' / '%') _ not_expr)* {
     / '-' _ a2:e1
         {let to_return = "-"+a2; initial_value[to_return] = function(){return initial_value[a2]();}; return to_return;}
 
-assignable = head:dot_expr tail:(_ access_array_)* {
-      let to_return = tail.reduce(function(result, element) {
-        let to_return = result + element[1];
-        if((expression_types[result] !== undefined) && expression_types[result].endsWith("[]")){
-			expression_types[to_return] = expression_types[result].substring(0,expression_types[result].length-2);
-		}
-        return to_return;
-      }, head);
-    }
-
-access_array = head:function_call tail:(_ access_array_)* {
-      let to_return = tail.reduce(function(result, element) {
-        let to_return = result + element[1];
-        if((expression_types[result] !== undefined) && expression_types[result].endsWith("[]")){
-			expression_types[to_return] = expression_types[result].substring(0,expression_types[result].length-2);
-		}
-        return to_return;
-      }, head);
-      return to_return;
-    }
 
 access_array_ = "[" _ a:e _ "]" {expression_types[a] = "float"; let to_return = "["+a+"]"; initial_value[to_return] = function(){return "[" + initial_value[a]() + "]";}; return to_return;}
 
-function_call
-  = head:callable type_params:("<" _ types _ ">" / "") tail:(_ function_call_ / "") {
-	  var split_head = head.split(".");
-      if(split_head.length === 2 && split_head[0] === "compiled_Math" && (["compiled_round","compiled_sin","compiled_asin","compiled_acos","compiled_atan","compiled_asinh","compiled_acosh","compiled_atanh","compiled_min","compiled_max","compiled_cos","compiled_tan","compiled_sinh","compiled_cosh","compiled_tanh","compiled_abs","compiled_floor","compiled_ceil","compiled_exp","compiled_pow","compiled_log","compiled_log2","compiled_sqrt","compiled_trunc","compiled_sign"].indexOf(split_head[1]) !== -1)){
-	      let to_return = split_head[1].substring("compiled_".length,split_head[1].length) + tail[1];
-	      expression_types[to_return] = "float";
-	      return to_return;
-      }
-      else if(head === "compiled_Number"){
-		  let to_return = "float" + tail[1];
-	      expression_types[to_return] = "float";
-	      return to_return;
-      }
-      else if(head === "compiled_typeof"){
-		  return "decltype"+tail[1];
-      }
-      else if(head === "compiled_Boolean"){
-		  let to_return = "float" + tail[1];
-	      expression_types[to_return] = "bool";
-	      return to_return;
-      }
-      else if(tail.length > 0){
-		return head+tail[1];
-	  }
-	  else{
-	    return head;
-	  }
-    }
-
 function_call_ = "(" _ a2:exprs _ ")" {return "("+a2+")";}
 
-not_expr= a1:"!" _ a2:access_array {let to_return = "!"+a2; expression_types[a2] = "bool"; expression_types[to_return] = "bool"; return to_return;} / access_array
+not_expr= a1:"!" _ a2:callable {let to_return = "!"+a2; expression_types[a2] = "bool"; expression_types[to_return] = "bool"; return to_return;} / callable
 
 object_member = a1:var_name _ ":" _ e1:e {return "."+a1+"="+e1;}
 
@@ -369,35 +320,49 @@ enum_members = head:enum_member tail:(_ (',') _ enum_member)* {
     } / "" {return "";}
 
 callable=
-	"(" _ a2:e _ ")" {let to_return  ="("+a2+")"; expression_types[to_return] = expression_types[a2]; return to_return;}
-	/ "new" __ a:dot_expr "(" b:exprs ")" {return a+".init("+b+")"}
-    / "[" a2:array_exprs "]" {return type_in_arr+"[]{"+a2[1]+"}";}
-	/ "{" _ a:object_members _ "}" {
-	  return type_in_arr+"[]{"+a+"}"
-	}
-	/ "function" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
+	a:NUMBER {expression_types[a] = "float"; return a;}
+	/ "new" __ a:dot_expr "(" b:exprs ")" {return a+"("+b+")"}	
+	/ dot_expr
+    
+
+anonymous_function = "function" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
 		return "(("+params+")->{"+body+"})"
 	}
 	/ "function" _ "(" _ params:function_parameters _ ")" _ ":" _ t1:type _ "{" _ body:statements _ "}" {
 		return "(("+params+") ->{"+body+"})"
 	}
-	/ "class" _ super_class:("extends" __ var_name / "") _ "{" _ a4:class_statements _ "}" {
+
+anonymous_class = "class" _ super_class:("extends" __ var_name / "") _ "{" _ a4:class_statements _ "}" {
 		if(super_class.length > 0){
 			return "new "+super_class[3]+"(){"+a4(name)+"}";
 		}
 		return "new Object(){"+a4(name)+"}";
 	}
-	/ dot_expr
-    / STRING_LITERAL
-    / a:NUMBER {expression_types[a] = "float"; return a;}
 
-dot_expr = head:var_name tail:(_ ('.') _ var_name)* {
+anonymous_type = "{" _ a:object_members _ "}" {
+	  return type_in_arr+"[]{"+a+"}"
+	}
+
+initializer_list = "[" a2:array_exprs "]" {return type_in_arr+"[]{"+a2[1]+"}";}
+
+dot_expr_ = 
+	"(" _ a2:e _ ")" {let to_return  ="("+a2+")"; expression_types[to_return] = expression_types[a2]; return to_return;}
+	/ initializer_list
+	/ anonymous_type
+	/ anonymous_function
+	/ anonymous_class
+	/ var_name
+	/ STRING_LITERAL
+
+dot_expr = head:dot_expr_ tail:(_ v1)* {
       let to_return = tail.reduce(function(result, element) {
-        return result + element[1] + element[3];
+        return result + element[1];
       }, head);
-      return "TypeScript."+to_return;
+      return to_return;
 	  //else return to_return;
     }
+
+v1 = a:('.') _ b:var_name {return a+b;} / function_call_ / access_array_
 
 
 function_parameter = a1:var_name _ ":" _ t1:type _ "=" _ d:e  {return [t1+" "+a1+" = " + d];}
