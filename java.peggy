@@ -92,7 +92,7 @@ static_method = "static" __ name:var_name _ type_params:("<" _ type_parameters _
 	}
 
 constructor = "constructor" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
-	return function(name1){return "pub fn init(arguments:anytype)"+name1+"{"+params+" var self = "+name1+"{"+class_members+"};"+body+"return self;}";};
+	return function(name1){return "public "+name1+"{"+params+"){"+body+"}";};
 }
 
 class_statement = constructor / abstract_method / instance_method  / static_method / a:class_member _ ";" {return function(name1){return a(name1) + ","}}

@@ -75,7 +75,7 @@ instance_method = name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "
 		if(t2.length > 0){
 			t1 = t2[2];
 		}
-		return function(name1){return t1+" "+name+"("+params+"){"+body+"}";}
+		return function(name1){return "function "+name+"("+params+"){"+body+"}";}
 	}
 
 static_method = "static" __ name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ (":" _ t2:type _ / "") "{" _ c:statements _ "}" {
@@ -84,15 +84,15 @@ static_method = "static" __ name:var_name _ type_params:("<" _ type_parameters _
 			t1 = t2[2];
 		}
 		if(type_params.length > 0){
-			return function(name1){return "fn "+name+"("+type_params[2]+",arguments:anytype) "+t1+"{"+b+c+"}";};
+			return function(name1){return "public static function "+name+"("+b+"){"+c+"}";}
 		}
 		else{
-			return function(name1){return "static "+t1+" "+name+"("+b+"){"+c+"}";}
+			return function(name1){return "public static function "+name+"("+b+"){"+c+"}";}
 		}
 	}
 
 constructor = "constructor" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
-	return function(name1){return "pub fn init(arguments:anytype)"+name1+"{"+params+" var self = "+name1+"{"+class_members+"};"+body+"return self;}";};
+	return function(name1){return "function __construct("+params+"){"+body+"}";};
 }
 
 class_statement = constructor / abstract_method / instance_method  / static_method / a:class_member _ ";" {return function(name1){return a(name1) + ","}}
@@ -122,8 +122,8 @@ class_=
 		return to_return;
 	}
 	/ "interface" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a:interface_statements _ "}"
+	{ return "interface "+name+"{"+a+"}";}
 	/ "enum" __ a:var_name _ "{" _ b:enum_members _ "}" {return "enum "+a+"{"+b+"}";}
-	{ return "class "+name+"{public:"+a+"}";}
 
 statement =
 	a1:statement_ {return a1;}
@@ -194,10 +194,10 @@ statement_with_semicolon
 		
    / "return"  {return "return";}
    / c1:const_or_var __ name:var_name _ ":" _ t1:type _ "=" _ val:e {
-		initial_value[name]=function(){return val;}; return c1+t1+" " + name + " = "+val;
+		initial_value[name]=function(){return val;}; return name + " = "+val;
    }
    / c1:const_or_var __ name:var_name _ "=" _ val:e {
-		initial_value[name]=function(){return val;}; return c1+"dynamic " + name + " = "+val;
+		initial_value[name]=function(){return val;}; return name + " = "+val;
    }
    / name:assignable _ a2:"=" _ val:e {
    		initial_value[name]=function(){return val;};
@@ -434,7 +434,7 @@ var_name= name:IDENTIFIER {
 let to_return = "";
 if(name == "this") to_return = "self"; else if(["true","false","undefined","void","break","continue","arguments"].includes(name)) to_return = name; else to_return = (name === "number"?"double":name==="boolean"?"bool":name==="any"?"auto":"compiled_"+name);
 if(initial_value[to_return] === undefined){initial_value[to_return] = function(){return to_return;};}
-return to_return;
+return "$"+to_return;
 }
 
 bracket_statements= "{" _ a2:statements _ "}" {return a2;} / a1:statement_with_semicolon _ ";" {return a1+";";}

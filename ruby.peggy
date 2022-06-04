@@ -146,12 +146,8 @@ statement_
 	}
     / "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements _ a6:elif {expression_types[a3] = "bool"; return ["if ",a3,"{",a5,"}",a6].join("");}
 	/ "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements {expression_types[a3] = "bool"; return ["if ",a3,"{",a5,"}"].join("");}
-    / "function var" __ name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ t1:(":" _ type _ / "") "{" _ c:statements _ "}" {
-		let return_type = "dynamic";
-		if(t1.length > 0){
-			return_type = t1[2]; 
-		}
-		return "function "+name+"("+b+"):"+return_type+" ="+c+";"
+    / "function" __ name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ t1:(":" _ type _ / "") "{" _ c:statements _ "}" {
+		return "def "+name+"("+b+") "+c+" end"
 	}
 
 type_parameters = head:type tail:(_ (',') _ type)* {
@@ -166,7 +162,7 @@ identifiers = head:var_name tail:(_ (',') _ var_name)* {
       }, head);
     }
 
-case_statement= "case" __ a2:e _ ":" _ a4:statements _ "break" _ ";" {return ["case ",a2,":",a4,"break;"].join("")}
+case_statement= "case" __ a2:e _ ":" _ a4:statements _ "break" _ ";" {return ["when ",a2," ",a4].join("")}
 
 case_statements_ = head:case_statement tail:(_ case_statement)* {
       return tail.reduce(function(result, element) {
@@ -340,7 +336,7 @@ function_call_ = "(" _ a2:exprs _ ")" {return "("+a2+")";}
 
 not_expr= a1:"!" _ a2:access_array {let to_return = "!"+a2; expression_types[a2] = "bool"; expression_types[to_return] = "bool"; return to_return;} / access_array
 
-object_member = a1:var_name _ ":" _ e1:e {return a1+"="+e1;}
+object_member = a1:var_name _ ":" _ e1:e {return a1+":"+e1;}
 
 object_members = head:object_member tail:(_ (',') _ object_member)* {
       return tail.reduce(function(result, element) {
@@ -365,19 +361,13 @@ callable=
 	/ "new" __ a:dot_expr "(" b:exprs ")" {return a+".init("+b+")"}
     / "[" a2:array_exprs "]" {return type_in_arr+"[]{"+a2[1]+"}";}
 	/ "{" _ a:object_members _ "}" {
-	  return type_in_arr+"[]{"+a+"}"
+	  return "{"+a+"}"
 	}
 	/ "function" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
-		return "[]("+params+"){"+body+"}"
+		return "lambda do |"+params+"| "+body+" end"
 	}
 	/ "function" _ "(" _ params:function_parameters _ ")" _ ":" _ t1:type _ "{" _ body:statements _ "}" {
-		return "[]("+params+") ->"+t1+"{"+body+"}"
-	}
-	/ "class" _ super_class:("extends" __ var_name / "") _ "{" _ a4:class_statements _ "}" {
-		if(super_class.length > 0){
-			return "struct{usingnamespace "+super_class[3]+";"+a4(name)+"};";
-		}
-		return "const "+name+" = struct{"+a4(name)+"};";
+		return "lambda do |"+params+"| "+body+" end"
 	}
 	/ dot_expr
     / STRING_LITERAL

@@ -155,7 +155,7 @@ statement_
     / "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements _ a6:elif {expression_types[a3] = "bool"; return ["if ",a3,"{",a5,"}",a6].join("");}
 	/ "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements {expression_types[a3] = "bool"; return ["if ",a3,"{",a5,"}"].join("");}
     / "function" __ name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ t1:(":" _ type _ / "") "{" _ c:statements _ "}" {
-		let return_type = "@TypeOf("+initial_value[returned]()+")";
+		let return_type = "Any";
 		if(t1.length > 0){
 			return_type = t1[2]; 
 		}
@@ -421,7 +421,7 @@ dot_expr = head:var_name tail:(_ ('.') _ var_name)* {
     }
 
 
-function_parameter = a1:var_name _ ":" _ t1:type {return [a1+": "+t1];} / "..." a1:var_name _ ":" _ t1:type "[]" {return [a1+": "+t1+"..."];} / a1:var_name _ ":" _ t1:type _ "=" _ d:e {return [a1+":"+t1+"="+d];}
+function_parameter = a1:var_name _ ":" _ t1:type {return [a1+": "+t1];} / "..." a1:var_name _ ":" _ t1:type "[]" {return [a1+": "+t1+"..."];} / a1:var_name _ ":" _ t1:type _ "=" _ d:e {return [a1+":"+t1+"="+d];} / a1:var_name {return [a1+":Any"];}
 
 function_parameters = head:function_parameter tail:(_ (',') _ function_parameter)* {
       return "_ " + (tail.reduce(function(result, element) {
@@ -455,7 +455,7 @@ elif_ = a1:else_if _ "(" _ a3:e _ ")" _ a5:bracket_statements {return "else if("
 
 var_name= name:IDENTIFIER {
 let to_return = "";
-if(name == "this") to_return = "self"; else if(["true","false","undefined","void","break","continue","arguments"].includes(name)) to_return = name; else to_return = (name === "string"?"String":name === "number"?"Double":name==="boolean"?"bool":"compiled_"+name);
+if(name == "this") to_return = "self"; else if(["true","false","undefined","void","break","continue","arguments"].includes(name)) to_return = name; else to_return = (name === "string"?"String":name === "number"?"Double":name==="boolean"?"bool":name==="any"?"Any":"compiled_"+name);
 if(initial_value[to_return] === undefined){initial_value[to_return] = function(){return to_return;};}
 return to_return;
 }
