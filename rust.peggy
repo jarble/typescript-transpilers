@@ -31,8 +31,7 @@ if(expression_types[b] == undefined) expression_types[b] = expression_types[a];
 }
 
 expressions = _ a:statements _ {
-	
-	return a;
+	return "use structx::*; " + a;
 }
 
 statements = head:statement tail:(_ statement)* {
@@ -154,10 +153,14 @@ statement_
 	/ "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements {expression_types[a3] = "bool"; return ["if ",a3,"{",a5,"}"].join("");}
     / "function" __ name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ t1:(":" _ type _ / "") "{" _ c:statements _ "}" {
 		let return_type = "auto";
+		let type_params1 = "";
+		if(type_params.length > 0){
+			type_params1 = "<"+type_params[2]+">";
+		}
 		if(t1.length > 0){
 			return_type = t1[2]; 
 		}
-		return name+"|"+b+"|{"+c+"}"
+		return "fn "+name+type_params1+"("+b+")->"+return_type+"{"+c+"}"
 	}
 
 type_parameters = head:type tail:(_ (',') _ type)* {
@@ -346,7 +349,7 @@ function_call_ = "(" _ a2:exprs _ ")" {return "("+a2+")";}
 
 not_expr= a1:"!" _ a2:access_array {let to_return = "!"+a2; expression_types[a2] = "bool"; expression_types[to_return] = "bool"; return to_return;} / access_array
 
-object_member = a1:var_name _ ":" _ e1:e {return "."+a1+"="+e1;}
+object_member = a1:var_name _ ":" _ e1:e {return a1+":"+e1;}
 
 object_members = head:object_member tail:(_ (',') _ object_member)* {
       return tail.reduce(function(result, element) {
@@ -374,7 +377,7 @@ anonymous_function = "function" _ "(" _ params:function_parameters _ ")" _ "{" _
 	}
 	
 anonymous_type = "{" _ a:object_members _ "}" {
-	  return type_in_arr+"[]{"+a+"}"
+	  return "structx!{"+a+"}"
 	}
 
 initializer_list = "[" a2:array_exprs "]" {return type_in_arr+"[]{"+a2[1]+"}";}

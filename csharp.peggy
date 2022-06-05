@@ -56,7 +56,7 @@ static_method = "static" __ name:var_name _ type_params:("<" _ type_parameters _
 			t1 = t2[2];
 		}
 		if(type_params.length > 0){
-			return function(name1){return "fn "+name+"("+type_params[2]+",arguments:anytype) "+t1+"{"+b+c+"}";};
+			return function(name1){return "static "+t1+" "+name+"<"+type_params[2]+">{"+c+"}";};
 		}
 		else{
 			return function(name1){return "static "+t1+" "+name+"("+b+"){"+c+"}";}
@@ -64,7 +64,7 @@ static_method = "static" __ name:var_name _ type_params:("<" _ type_parameters _
 	}
 
 constructor = "constructor" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
-	return function(name1){return "pub fn init(arguments:anytype)"+name1+"{"+params+" var self = "+name1+"{"+class_members+"};"+body+"return self;}";};
+	return function(name1){return "public "+name1+"("+params+"){"+body+"}";};
 }
 
 class_statement = constructor / abstract_method / instance_method  / static_method / a:class_member _ ";" {return function(name1){return a(name1) + ","}}
