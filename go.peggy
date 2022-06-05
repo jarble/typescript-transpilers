@@ -391,8 +391,8 @@ dot_expr = head:var_name tail:(_ ('.') _ var_name)* {
     }
 
 
-function_parameter = a1:var_name _ ":" _ t1:type {return [t1+" "+a1];} /
-a1:var_name {return ["var "+a1];}
+function_parameter = a1:var_name _ ":" _ t1:type {return [a1+" "+t1];} /
+a1:var_name {return [a1+" interface{}"];}
 
 function_parameters = head:function_parameter tail:(_ (',') _ function_parameter)* {
       return (tail.reduce(function(result, element) {
