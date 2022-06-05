@@ -388,22 +388,28 @@ anonymous_class = "class" _ super_class:("extends" __ var_name / "") _ "{" _ a4:
 new_instance = "new" __ a:dot_expr "(" b:exprs ")" {return a+".init("+b+")"}
 
 callable=
-	"(" _ a2:e _ ")" {let to_return  ="("+a2+")"; expression_types[to_return] = expression_types[a2]; return to_return;}
+	a:NUMBER {expression_types[a] = "float"; return a;}
 	/ new_instance
-    / initializer_list
+	/ dot_expr
+
+dot_expr_ = 
+	"(" _ a2:e _ ")" {let to_return  ="("+a2+")"; expression_types[to_return] = expression_types[a2]; return to_return;}
+	/ initializer_list
 	/ anonymous_type
 	/ anonymous_function
 	/ anonymous_class
-	/ dot_expr
-    / STRING_LITERAL
-    / a:NUMBER {expression_types[a] = "float"; return a;}
+	/ var_name
+	/ STRING_LITERAL
 
-dot_expr = head:var_name tail:(_ ('.') _ var_name)* {
+dot_expr = head:dot_expr_ tail:(_ v1)* {
       let to_return = tail.reduce(function(result, element) {
-        return result + element[1] + element[3];
+        return result + element[1];
       }, head);
-      return "TypeScript."+to_return;
+      return to_return;
+	  //else return to_return;
     }
+
+v1 = a:('.') _ b:var_name {return a+b;} / function_call_ / access_array_
 
 
 function_parameter = a1:var_name _ ":" _ t1:type _ "=" _ d:e  {return [t1+" "+a1+" = " + d];}

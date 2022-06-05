@@ -195,9 +195,6 @@ statement_with_semicolon
    / c1:const_or_var __ name:var_name _ ":" _ t1:type _ "=" _ val:e {
 		initial_value[name]=function(){return val;}; return c1+t1+" " + name + " = "+val;
    }
-   / c1:const_or_var __ name:var_name _ "=" _ val:e {
-		initial_value[name]=function(){return val;}; return c1+"dynamic " + name + " = "+val;
-   }
    / name:assignable _ a2:"=" _ val:e {
    		initial_value[name]=function(){return val;};
    		if(temp_vars.indexOf(val) !== -1){declared_redundant_vars[val] = name; return "";}
@@ -205,8 +202,6 @@ statement_with_semicolon
 			return name+a2+val;
 		}
    }
-   / a1:assignable _ a2:("++" / "--") {return a1+a2;}
-   / a1:assignable _ a2:("+=" / "%=" / "-=" / "*=" / "/=") _ a3:e {return a1+a2+a3;}
    / var_name
 
 
@@ -379,27 +374,31 @@ initializer_list = "[" a2:array_exprs "]" {return type_in_arr+"[]{"+a2[1]+"}";}
 new_instance = "new" __ a:dot_expr "(" b:exprs ")" {return a+".init("+b+")"}
 
 callable=
-	"(" _ a2:e _ ")" {let to_return  ="("+a2+")"; expression_types[to_return] = expression_types[a2]; return to_return;}
+	a:NUMBER {expression_types[a] = "float"; return a;}
 	/ new_instance
-    / initializer_list
+	/ dot_expr
+
+dot_expr_ = 
+	"(" _ a2:e _ ")" {let to_return  ="("+a2+")"; expression_types[to_return] = expression_types[a2]; return to_return;}
+	/ initializer_list
 	/ anonymous_type
 	/ anonymous_function
-	/ dot_expr
-    / STRING_LITERAL
-    / a:NUMBER {expression_types[a] = "float"; return a;}
+	/ var_name
+	/ STRING_LITERAL
 
-dot_expr = head:var_name tail:(_ ('.') _ var_name)* {
+dot_expr = head:dot_expr_ tail:(_ v1)* {
       let to_return = tail.reduce(function(result, element) {
-        return result + element[1] + element[3];
+        return result + element[1];
       }, head);
-      return "TypeScript."+to_return;
+      return to_return;
+	  //else return to_return;
     }
+
+v1 = a:('.') _ b:var_name {return a+b;} / function_call_ / access_array_
 
 
 function_parameter = a1:var_name _ ":" _ t1:type _ "=" _ d:e  {return [t1+" "+a1+" = " + d];}
-/ a1:var_name _ "=" _ d:e  {return ["dynamic "+a1+" = " + d];}
 / a1:var_name _ ":" _ t1:type {return [t1+" "+a1];}
-/ a1:var_name {return ["dynamic "+a1];}
 
 function_parameters = head:function_parameter tail:(_ (',') _ function_parameter)* {
       return (tail.reduce(function(result, element) {
