@@ -53,56 +53,36 @@ class_statements = head:class_statement tail:( _ class_statement)* {
       }, head);
     }
 
-instance_method = name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ t2:(":" _ type _ / "") "{" _ c:statements _ "}" {
-		let t1 = "@TypeOf("+initial_value[returned]()+")";
-		if(t2.length > 0){
-			t1 = t2[2];
+type_params_string = "<" _ t1:type_parameters _ ">" _ {return "["+t1+"]";} / "" {return "";}
+
+class_method = access_modifier s1:static_string name:var_name _ type_params:type_params_string "(" _ b:function_parameters _ ")" _ t1:return_type_string "{" _ c:statements _ "}" {
+
+		return function(name1){
+			if(static_string !== ""){
+				static_string = "(s "+name1+")";
+			}
+			return "func "+static_string+name+type_params+"("+b+")"+t1+"{"+c+"}";
 		}
-		return function(name1){return "fn "+name+"(self:"+name1+",arguments:anytype) "+t1+"{"+b+c+"}";}
 	}
 
-static_method = "static" __ name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ (":" _ t2:type _ / "") "{" _ c:statements _ "}" {
-		let t1 = "@TypeOf("+initial_value[returned]()+")";
-		if(t2.length > 0){
-			t1 = t2[2];
-		}
-		if(type_params.length > 0){
-			return function(name1){return "fn "+name+"("+type_params[2]+",arguments:anytype) "+t1+"{"+b+c+"}";};
-		}
-		else{
-			return function(name1){return "fn "+name+"(arguments:anytype) "+return_type+"{"+b+c+"}";}
-		}
-	}
+static_string = "static" __ {return "static";} / "" {return "";}
 
 constructor = "constructor" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
 	return function(name1){return "pub fn init(arguments:anytype)"+name1+"{"+params+" var self = "+name1+"{"+class_members+"};"+body+"return self;}";};
 }
 
-class_statement = constructor / instance_method  / static_method / a:class_member _ ";" {return function(name1){return a(name1) + ","}}
+class_statement = constructor / class_method / a:class_member _ ";" {return function(name1){return a(name1)}}
 
-class_member = a:var_name _ ":" _ b:type {
-	if(class_members !== "") class_members += ","; class_members += "."+a+"=undefined";
-	return function(name1){return a+":"+b;};
+class_member = a:function_parameter {
+	return function(name1){return a;};
 }
 
 access_modifier= "public" / "private"
 
 class_=
 	"type" __ a:var_name _ "=" _ b:type ";" {return "\n#define "+a+" "+b+"\n";}
-	/ "class" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a4:class_statements _ "}" {
-		class_name = name;
-		let to_return = "";
-		let class_body = a4(name);
-		if(super_class.length > 0){
-			class_body = "usingnamespace "+super_class[3]+";"+a4(name);
-		}
-		if(type_params.length === 0){
-			to_return = "const "+name+" = struct{"+class_body+"};";
-		}
-		else{
-			to_return = "fn "+name+"("+type_params[3]+") type {return struct {"+class_body+"};}";
-		}
-		return to_return;
+	/ "class" __ name:var_name type_params:type_params_string  super_class:super_class_string _ "{" _ a4:class_statements _ "}" {
+		return "type "+name+" struct{"+a4(name)+"}";
 	}
 
 statement =
@@ -130,19 +110,16 @@ statement_
 	}
     / "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements _ a6:elif {expression_types[a3] = "bool"; return ["if ",a3,"{",a5,"}",a6].join("");}
 	/ "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements {expression_types[a3] = "bool"; return ["if ",a3,"{",a5,"}"].join("");}
-    / "function" __ name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ t1:(":" _ type _ / "") "{" _ c:statements _ "}" {
-		let return_type = "interface{}";
-		if(t1.length > 0){
-			return_type = t1[2]; 
-		}
-		return "func "+name+"("+b+") "+return_type+"{"+c+"}"
+    / "function" __ name:var_name _ type_params:type_params_string "(" _ b:function_parameters _ ")" _ t1:return_type_string "{" _ c:statements _ "}" {
+		return "func " + name + type_params + "(" + b + ") "+ t1 + "{" + c + "}";
 	}
 
+return_type_string = ":" _ t1:type _ {return t1;}  / "" {return "interface{}";}
 
 type_parameters = head:type tail:(_ (',') _ type)* {
       return tail.reduce(function(result, element) {
-        return result + ",comptime " + element[3]+":type";
-      }, "comptime "+head+":type");
+        return result + "," + element[3]+" any";
+      }, head+" any");
     }
 
 identifiers = head:var_name tail:(_ (',') _ var_name)* {
@@ -296,7 +273,7 @@ access_array = head:function_call tail:(_ access_array_)* {
 access_array_ = "[" _ a:e _ "]" {expression_types[a] = "float"; let to_return = "["+a+"]"; initial_value[to_return] = function(){return "[" + initial_value[a]() + "]";}; return to_return;}
 
 function_call
-  = head:callable type_params:("<" _ types _ ">" / "") tail:(_ function_call_ / "") {
+  = head:callable type_params:type_params_string tail:(_ function_call_ / "") {
 	  var split_head = head.split(".");
       if(split_head.length === 2 && split_head[0] === "compiled_Math" && (["compiled_round","compiled_sin","compiled_asin","compiled_acos","compiled_atan","compiled_asinh","compiled_acosh","compiled_atanh","compiled_min","compiled_max","compiled_cos","compiled_tan","compiled_sinh","compiled_cosh","compiled_tanh","compiled_abs","compiled_floor","compiled_ceil","compiled_exp","compiled_pow","compiled_log","compiled_log2","compiled_sqrt","compiled_trunc","compiled_sign"].indexOf(split_head[1]) !== -1)){
 	      let to_return = split_head[1].substring("compiled_".length,split_head[1].length) + tail[1];
@@ -361,10 +338,7 @@ callable=
 	/ "function" _ "(" _ params:function_parameters _ ")" _ t1:type _ "{" _ body:statements _ "}" {
 		return "func("+params+") "+t1+"{"+body+"}";
 	}
-	/ "class" _ super_class:("extends" __ var_name / "") _ "{" _ a4:class_statements _ "}" {
-		if(super_class.length > 0){
-			return "struct{usingnamespace "+super_class[3]+";"+a4(name)+"};";
-		}
+	/ "class" _ super_class:super_class_string _ "{" _ a4:class_statements _ "}" {
 		return "const "+name+" = struct{"+a4(name)+"};";
 	}
 	/ dot_expr

@@ -118,7 +118,7 @@ class_=
 		}
 		return to_return;
 	}
-	/ "interface" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a:interface_statements _ "}"
+	/ access_modifier "interface" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a:interface_statements _ "}"
 	{ return "class "+name+"{public:"+a+"}";}
 
 statement =

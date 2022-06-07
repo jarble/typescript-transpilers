@@ -41,18 +41,12 @@ statements = head:statement tail:(_ statement)* {
       }, head);
     }
 
+access_modifier = "export" __ {return "public: "} / "" {return "private: "}
+
 abstract_method = "abstract" __ a:interface_method _ ";" {return function(name1){return a+";";};}
 
-interface_method = name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ t1:(":" _ type _ / "") {
-		let return_type = "interface{}";
-		let type_params_string = "";
-		if(t1.length > 0){
-			return_type = t1[2];
-		}
-		if(type_params.length > 0){
-			type_params_string = "<"+type_params[2]+"> "; //how are pure virtual generic functions supposed to work?
-		}
-		return "virtual " + return_type +" "+ name+"("+b+") = 0";
+interface_method = name:var_name _ type_params:type_params_string "(" _ b:function_parameters _ ")" _ t1:return_type_string {
+		return "virtual " + t1 +" "+ name+"("+b+") = 0";
 	}
 
 interface_statement = interface_method
@@ -70,25 +64,14 @@ class_statements = head:class_statement tail:( _ class_statement)* {
       }, head);
     }
 
-instance_method = name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ params:function_parameters _ ")" _ t2:(":" _ type _ / "") "{" _ c:statements _ "}" {
-		let t1 = "decltype("+initial_value[returned]()+")";
-		if(t2.length > 0){
-			t1 = t2[2];
-		}
-		return function(name1){return t1+" "+name+"("+params+"){"+body+"}";}
+return_type_string = ":" _ t1:type _ {return t1;}  / "" {return "auto";}
+
+instance_method = name:var_name _ type_params:type_params_string "(" _ params:function_parameters _ ")" _ t1:return_type_string "{" _ c:statements _ "}" {
+		return function(name1){return type_params+t1+" "+name+"("+params+"){"+body+"}";}
 	}
 
-static_method = "static" __ name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ (":" _ t2:type _ / "") "{" _ c:statements _ "}" {
-		let t1 = "decltype("+initial_value[returned]()+")";
-		if(t2.length > 0){
-			t1 = t2[2];
-		}
-		if(type_params.length > 0){
-			return function(name1){return "fn "+name+"("+type_params[2]+",arguments:anytype) "+t1+"{"+b+c+"}";};
-		}
-		else{
-			return function(name1){return "static "+t1+" "+name+"("+b+"){"+c+"}";}
-		}
+static_method = "static" __ name:var_name _ type_params:type_params_string "(" _ b:function_parameters _ ")" _ t1:return_type_string "{" _ c:statements _ "}" {
+		return function(name1){return type_params+"static "+t1+" "+name+"("+b+"){"+c+"}";}
 	}
 
 constructor = "constructor" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
@@ -103,27 +86,27 @@ class_member = a:var_name _ ":" _ b:type {
 	return function(name1){return a+":"+b;};
 }
 
-access_modifier= "public" / "private"
+
+type_params_string = "<" _ t1:type_parameters _ ">" _ {return "template <"+t1+"> ";} / "" {return "";}
 
 class_=
 	"type" __ a:var_name _ "=" _ b:type ";" {return "\n#define "+a+" "+b+"\n";}
-	/ ("abstract" __ / "") "class" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a4:class_statements _ "}" {
+	/ access_modifier ("abstract" __ / "") "class" __ name:var_name type_params:type_params_string  super_class:super_class_string _ "{" _ a4:class_statements _ "}" {
 		class_name = name;
 		let to_return = "";
 		let class_body = a4(name);
 		if(super_class.length > 0){
-			to_return = "class "+name+":"+super_class[3]+"{"+class_body+"};";
-		}
-		if(type_params.length === 0){
-			to_return = "class "+name+"{"+class_body+"};";
+			to_return = type_params+"class "+name+":"+super_class[3]+"{"+class_body+"};";
 		}
 		else{
-			to_return = "fn "+name+"("+type_params[3]+") type {return struct {"+class_body+"};}";
+			to_return = type_params+"class "+name+"{"+class_body+"};";
 		}
 		return to_return;
 	}
-	/ "interface" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a:interface_statements _ "}"
-	{ return "class "+name+"{public:"+a+"}";}
+	/ access_modifier "interface" __ name:var_name type_params:type_params_string  super_class:super_class_string _ "{" _ a:interface_statements _ "}"
+	{
+		return type_params+"class "+name+"{public:"+a+"}";
+	}
 	/ "enum" __ a:var_name __ "{" __ b:identifiers __ "}" {return "enum "+a+"{"+b+"};"}
 
 
@@ -152,12 +135,8 @@ statement_
 	}
     / "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements _ a6:elif {expression_types[a3] = "bool"; return ["if ",a3,"{",a5,"}",a6].join("");}
 	/ "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements {expression_types[a3] = "bool"; return ["if ",a3,"{",a5,"}"].join("");}
-    / "function" __ name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ t1:(":" _ type _ / "") "{" _ c:statements _ "}" {
-		let return_type = "auto";
-		if(t1.length > 0){
-			return_type = t1[2]; 
-		}
-		return return_type+" "+name+"("+b+"){"+c+"}"
+    / "function" __ name:var_name _ type_params:type_params_string "(" _ b:function_parameters _ ")" _ t1:return_type_string "{" _ c:statements _ "}" {
+		return type_params+t1+" "+name+"("+b+"){"+c+"}"
 	}
 
 type_parameters = head:type tail:(_ (',') _ type)* {
@@ -317,7 +296,7 @@ access_array = head:function_call tail:(_ access_array_)* {
 access_array_ = "[" _ a:e _ "]" {expression_types[a] = "float"; let to_return = "["+a+"]"; initial_value[to_return] = function(){return "[" + initial_value[a]() + "]";}; return to_return;}
 
 function_call
-  = head:callable type_params:("<" _ types _ ">" / "") tail:(_ function_call_ / "") {
+  = head:callable type_params:type_params_string tail:(_ function_call_ / "") {
 	  var split_head = head.split(".");
       if(split_head.length === 2 && split_head[0] === "compiled_Math" && (["compiled_round","compiled_sin","compiled_asin","compiled_acos","compiled_atan","compiled_asinh","compiled_acosh","compiled_atanh","compiled_min","compiled_max","compiled_cos","compiled_tan","compiled_sinh","compiled_cosh","compiled_tanh","compiled_abs","compiled_floor","compiled_ceil","compiled_exp","compiled_pow","compiled_log","compiled_log2","compiled_sqrt","compiled_trunc","compiled_sign"].indexOf(split_head[1]) !== -1)){
 	      let to_return = split_head[1].substring("compiled_".length,split_head[1].length) + tail[1];
@@ -376,10 +355,7 @@ anonymous_function = "function" _ "(" _ params:function_parameters _ ")" _ "{" _
 		return "[]("+params+") ->"+t1+"{"+body+"}"
 	}
 
-anonymous_class = "class" _ super_class:("extends" __ var_name / "") _ "{" _ a4:class_statements _ "}" {
-		if(super_class.length > 0){
-			return "struct{usingnamespace "+super_class[3]+";"+a4(name)+"};";
-		}
+anonymous_class = "class" _ super_class:super_class_string _ "{" _ a4:class_statements _ "}" {
 		return "const "+name+" = struct{"+a4(name)+"};";
 	}
 

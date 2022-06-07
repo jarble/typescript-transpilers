@@ -43,16 +43,8 @@ statements = head:statement tail:(_ statement)* {
 
 abstract_method = "abstract" __ a:interface_method _ ";" {return function(name1){return a+";";};}
 
-interface_method = name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ t1:(":" _ type _ / "") {
-		let return_type = "dynamic";
-		let type_params_string = "";
-		if(t1.length > 0){
-			return_type = t1[2];
-		}
-		if(type_params.length > 0){
-			type_params_string = "<"+type_params[2]+"> "; //how are pure virtual generic functions supposed to work?
-		}
-		return "public " + return_type +" "+ name+"("+b+") = 0";
+interface_method = name:var_name _ type_params:type_params_string "(" _ b:function_parameters _ ")" _ t1:return_type_string {
+		return "public " + t1 +" "+ name+type_params+"("+b+")";
 	}
 
 interface_statement = interface_method
@@ -70,7 +62,7 @@ class_statements = head:class_statement tail:( _ class_statement)* {
       }, head);
     }
 
-instance_method = name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ params:function_parameters _ ")" _ t2:(":" _ type _ / "") "{" _ c:statements _ "}" {
+instance_method = name:var_name _ type_params:type_params_string "(" _ params:function_parameters _ ")" _ t2:(":" _ type _ / "") "{" _ c:statements _ "}" {
 		let t1 = "dynamic";
 		if(t2.length > 0){
 			t1 = t2[2];
@@ -106,7 +98,7 @@ access_modifier= "public" / "private"
 
 class_=
 	"type" __ a:var_name _ "=" _ b:type ";" {return "\n#define "+a+" "+b+"\n";}
-	/ ("abstract" __ / "") "class" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a4:class_statements _ "}" {
+	/ access_modifier ("abstract" __ / "") "class" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a4:class_statements _ "}" {
 		class_name = name;
 		let to_return = "";
 		let class_body = a4(name);
@@ -121,7 +113,7 @@ class_=
 		}
 		return to_return;
 	}
-	/ "interface" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a:interface_statements _ "}"
+	/ access_modifier "interface" __ name:var_name type_params:(_ "<" _ type_parameters _ ">" _ / "")  super_class:( _ "extends" _ var_name / "") _ "{" _ a:interface_statements _ "}"
 	{ return "class "+name+"{public:"+a+"}";}
 	/ "enum" __ a:var_name _ "{" _ b:enum_members _ "}" {return "enum class "+a+"{"+b+"}";}
 
@@ -151,12 +143,8 @@ statement_
 	}
     / "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements _ a6:elif {expression_types[a3] = "bool"; return ["if ",a3,"{",a5,"}",a6].join("");}
 	/ "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements {expression_types[a3] = "bool"; return ["if ",a3,"{",a5,"}"].join("");}
-    / "function" __ name:var_name _ type_params:("<" _ type_parameters _ ">" _ / "") "(" _ b:function_parameters _ ")" _ t1:(":" _ type _ / "") "{" _ c:statements _ "}" {
-		let return_type = "dynamic";
-		if(t1.length > 0){
-			return_type = t1[2]; 
-		}
-		return return_type+" "+name+"("+b+"){"+c+"}"
+    / "function" __ name:var_name _ type_params:type_params_string "(" _ b:function_parameters _ ")" _ t1:return_type_string "{" _ c:statements _ "}" {
+		return t1+" "+name+type_params+"("+b+"){"+c+"}"
 	}
 
 type_parameters = head:type tail:(_ (',') _ type)* {
