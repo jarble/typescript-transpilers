@@ -136,11 +136,11 @@ statement_with_semicolon
    / c1:const_or_var __ name:var_name _ "=" _ val:e {
 		return c1+"dynamic " + name + " = "+val;
    }
-   / name:assignable _ a2:"=" _ val:e {
+   / name:dot_expr _ a2:"=" _ val:e {
 		return name+a2+val;
    }
-   / a1:assignable _ a2:("++" / "--") {return a1+a2;}
-   / a1:assignable _ a2:("+=" / "%=" / "-=" / "*=" / "/=") _ a3:e {return a1+a2+a3;}
+   / a1:dot_expr _ a2:("++" / "--") {return a1+a2;}
+   / a1:dot_expr _ a2:("+=" / "%=" / "-=" / "*=" / "/=") _ a3:e {return a1+a2+a3;}
    / var_name
 
 
@@ -210,13 +210,6 @@ e1= head:not_expr tail:(_ ('*' / '/' / '%') _ not_expr)* {
     }
     / '-' _ a2:e1
         {let to_return = "-"+a2; return to_return;}
-
-assignable = head:dot_expr tail:(_ access_array_)* {
-      let to_return = tail.reduce(function(result, element) {
-        let to_return = result + element[1];
-        return to_return;
-      }, head);
-    }
 
 access_array = head:function_call tail:(_ access_array_)* {
       let to_return = tail.reduce(function(result, element) {

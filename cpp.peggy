@@ -1,35 +1,6 @@
 // Use this code to make it work offline:
 //     https://gist.github.com/kosamari/7c5d1e8449b2fbc97d372675f16b566e
 
-{var initial_value={}; var class_members = ""; var class_name = ""; var type_in_arr = undefined; var anonymous_structs = []; var class_names = []; var class_methods = ""; var extended_methods = {}; var class_fields = ""; var extended_fields = {}; var to_append = []; var temp_vars  = []; var redundant_vars = {}; var declared_redundant_vars = {}; var last_parsed = ""; var returned = undefined; var return_types = {}; var expression_types = {}; var type_parameters = {}; var function_number = 0;
-expression_types["true"] = "bool";
-expression_types["false"] = "bool";
-let break_if_returned = "if(is_returned == 1) break;"
-
-function replaceAll(str1,str2,str){
-    if(str1.indexOf("<") === -1) return str2;
-    let sub1 = str1.substring(str1.indexOf("<")+1,str1.indexOf(">"));
-    //alert(JSON.stringify([list1,list3]));
-    let list1 = sub1.split(",");
-    let list3 = str.split(",");
-    var mapObj = {};
-    for(let i = 0; i < list1.length; i++){
-        mapObj[list1[i]] = list3[i];
-    }
-    var re = new RegExp("\\b(?:"+Object.keys(mapObj).join("|")+")\\b","g");
-
-    return str2.replace(re, function(matched){
-        return mapObj[matched];
-    });
-}
-function unify_expression_types(a,b){
-if(expression_types[a] == undefined) expression_types[a] = expression_types[b];
-if(expression_types[b] == undefined) expression_types[b] = expression_types[a];
-}
-//alert(replaceAll("add<A>","A","float"));
-
-}
-
 expressions = _ a:statements _ {
 	
 	return a;
@@ -45,7 +16,7 @@ access_modifier = "export" __ {return "public: "} / "" {return "private: "}
 
 abstract_method = "abstract" __ a:interface_method _ ";" {return function(name1){return a+";";};}
 
-interface_method = name:var_name _ type_params:type_params_string "(" _ b:function_parameters _ ")" _ t1:return_type_string {
+interface_method = name:var_name _ type_params:type_params_string "(" _ b:function_parameters _ ")" t1:return_type_string {
 		return "virtual " + t1 +" "+ name+"("+b+") = 0";
 	}
 
@@ -64,21 +35,21 @@ class_statements = head:class_statement tail:( _ class_statement)* {
       }, head);
     }
 
-return_type_string = ":" _ t1:type _ {return t1;}  / "" {return "auto";}
+return_type_string = _ ":" _ t1:type _ {return t1;}  / _ {return "auto";}
 
-instance_method = name:var_name _ type_params:type_params_string "(" _ params:function_parameters _ ")" _ t1:return_type_string "{" _ c:statements _ "}" {
-		return function(name1){return type_params+t1+" "+name+"("+params+"){"+body+"}";}
+class_method = s1:static_string name:var_name _ type_params:type_params_string "(" _ params:function_parameters _ ")" t1:return_type_string "{" _ c:statements _ "}" {
+		return function(name1){return type_params+static_string+t1+" "+name+"("+params+"){"+body+"}";}
 	}
 
-static_method = "static" __ name:var_name _ type_params:type_params_string "(" _ b:function_parameters _ ")" _ t1:return_type_string "{" _ c:statements _ "}" {
-		return function(name1){return type_params+"static "+t1+" "+name+"("+b+"){"+c+"}";}
-	}
+static_string = "static" __ {return "static";} / "" {return "";}
 
 constructor = "constructor" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
 	return function(name1){return "pub fn init(arguments:anytype)"+name1+"{"+params+" var self = "+name1+"{"+class_members+"};"+body+"return self;}";};
 }
 
-class_statement = constructor / abstract_method / instance_method  / static_method / a:class_member _ ";" {return function(name1){return a(name1) + ","}}
+super_class_string = ( _ "extends" _ v:var_name {return " : "+v;} / "" {return "";})
+
+class_statement = constructor / abstract_method / class_method  / a:class_member _ ";" {return function(name1){return a(name1) + ","}}
 	/ "static" __ a:var_name _ ":" _ t1:type _ "=" _ expr:e {"static " + t1 + " " + a + " = " + expr+";";}
 
 class_member = a:var_name _ ":" _ b:type {
@@ -125,17 +96,11 @@ statement_
     / "switch" _ "(" _ a3:e _ ")" _ "{" _ a6:case_statements _ "}" {return ["switch(",a3,"){",a6,"}"].join("");}
     / "for" _ "(" _ a3:statement_with_semicolon _ ";" _ a5:e _ ";" _ a7:statement_with_semicolon _ ")" _ a9:bracket_statements {return "for("+a3+";"+a5+";"+a7+"){"+a9+"}";}
     / "for" _ "(" _ ("let" / "var") _ item:var_name __ "of" __ the_arr:var_name _ ")" _ body:bracket_statements {
-		if(expression_types[item] !== undefined){
-			expression_types[the_arr] = expression_types[item]+"[]";
-		}
-		else if(expression_types[the_arr] !== undefined){
-			expression_types[item] = expression_types[the_arr].substring(0,expression_types[the_arr].length-2);
-		}
 		return "for("+the_arr+")|"+item+"|{"+body+"})";
 	}
-    / "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements _ a6:elif {expression_types[a3] = "bool"; return ["if ",a3,"{",a5,"}",a6].join("");}
-	/ "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements {expression_types[a3] = "bool"; return ["if ",a3,"{",a5,"}"].join("");}
-    / "function" __ name:var_name _ type_params:type_params_string "(" _ b:function_parameters _ ")" _ t1:return_type_string "{" _ c:statements _ "}" {
+    / "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements _ a6:elif {return ["if ",a3,"{",a5,"}",a6].join("");}
+	/ "if" _ "(" _ a3:e _ ")" _ a5:bracket_statements {return ["if ",a3,"{",a5,"}"].join("");}
+    / "function" __ name:var_name _ type_params:type_params_string "(" _ b:function_parameters _ ")" t1:return_type_string "{" _ c:statements _ "}" {
 		return type_params+t1+" "+name+"("+b+"){"+c+"}"
 	}
 
@@ -168,30 +133,18 @@ const_or_var = ("let" / "var") {return "";} / "const" {return "const "};
 statement_with_semicolon
    = 
    "return" __ a2:e  {
-		returned = a2;
-		//alert(returned);
 		return "return "+a2;
 	}
 		
    / "return"  {return "return";}
-   / c1:const_or_var __ name:var_name _ ":" _ t1:type _ "=" _ val:e {
-		initial_value[name]=function(){return val;}; return c1+t1+" " + name + " = "+val;
+   / c1:const_or_var __ p1:function_parameter {
+		return c1+p1;
    }
-   / c1:const_or_var __ name:var_name _ ":" _ t1:type {
-		initial_value[name]=function(){return val;}; return c1+t1+" " + name;
+   / name:dot_expr _ a2:"=" _ val:e {
+		return name+a2+val;
    }
-   / c1:const_or_var __ name:var_name _ "=" _ val:e {
-		initial_value[name]=function(){return val;}; return c1+"auto " + name + " = "+val;
-   }
-   / name:assignable _ a2:"=" _ val:e {
-   		initial_value[name]=function(){return val;};
-   		if(temp_vars.indexOf(val) !== -1){declared_redundant_vars[val] = name; return "";}
-		else{
-			return name+a2+val;
-		}
-   }
-   / a1:assignable _ a2:("++" / "--") {return a1+a2;}
-   / a1:assignable _ a2:("+=" / "%=" / "-=" / "*=" / "/=") _ a3:e {return a1+a2+a3;}
+   / a1:dot_expr _ a2:("++" / "--") {return a1+a2;}
+   / a1:dot_expr _ a2:("+=" / "%=" / "-=" / "*=" / "/=") _ a3:e {return a1+a2+a3;}
    / var_name
 
 
@@ -205,14 +158,14 @@ types = head:type tail:(_ (',') _ type)* {
 
 e
     =
-     a1:e6 _ "?" _ a3:e6 _ ":" _ a5:e {expression_types[a3] = "bool"; return "("+a1+"?"+a3+":"+a5+")";}
+     a1:e6 _ "?" _ a3:e6 _ ":" _ a5:e {return "("+a1+"?"+a3+":"+a5+")";}
     /e6
 
 
 e6
   = head:e5 tail:(_ ("||") _ e5)* {
       let to_return = tail.reduce(function(result, element) {
-        let to_return = result + " || " + element[3]; expression_types[to_return] = "bool"; expression_types[result] = "bool"; expression_types[element[3]] = "bool"; return to_return;
+        let to_return = result + " || " + element[3]; return to_return;
       }, head);
       return to_return;
     }
@@ -230,9 +183,8 @@ e4_op= '!==' {return "!=";} / "===" {return "==";}
 e4
   = head:e3 tail:(_ ('<='/'<'/'>='/'>'/e4_op) _ e3)* {
       let to_return = tail.reduce(function(result, element) {
-        let to_return = result + element[1] + element[3]; expression_types[to_return] = "bool"; if([1] === "==" || element[1] === "==="){unify_expression_types(result,element[3]);} else{expression_types[result] = "float";} expression_types[element[3]] = "float"; return to_return;
+        let to_return = result + element[1] + element[3]; return to_return;
       }, head);
-      if(tail.length > 0) {initial_value[to_return] = function(){return initial_value[head]();};}
       return to_return;
     }
 
@@ -241,7 +193,6 @@ e3
       let to_return = tail.reduce(function(result, element) {
         return result + element[1] + element[3];
       }, head);
-      if(tail.length > 0) {initial_value[to_return] = function(){return initial_value[head]();};}
       return to_return;
     }
 
@@ -249,74 +200,35 @@ e2
   = head:e1 tail:(_ ('+'/'-') _ e1)* {
         let to_return = tail.reduce(function(result, element) {
         let to_return = result + element[1] + element[3];
-        expression_types[to_return] = "float";
-        expression_types[result] = "float";
-        expression_types[element[3]] = "float";
         return to_return;
       }, head);
-      if(tail.length > 0) {initial_value[to_return] = function(){return initial_value[head]();};}
       return to_return;
     }
     
 e1= head:not_expr tail:(_ ('*' / '/' / '%') _ not_expr)* {
       let to_return = tail.reduce(function(result, element) {
         let to_return = result + element[1] + element[3];
-        expression_types[to_return] = "float";
-        expression_types[result] = "float";
-        expression_types[element[3]] = "float";
         return to_return;
       }, head);
-      if(tail.length > 0) {initial_value[to_return] = function(){return initial_value[head]();};}
       return to_return;
     }
     / '-' _ a2:e1
-        {let to_return = "-"+a2; initial_value[to_return] = function(){return initial_value[a2]();}; return to_return;}
+        {let to_return = "-"+a2; return to_return;}
 
-assignable = head:dot_expr tail:(_ access_array_)* {
-      let to_return = tail.reduce(function(result, element) {
-        let to_return = result + element[1];
-        if((expression_types[result] !== undefined) && expression_types[result].endsWith("[]")){
-			expression_types[to_return] = expression_types[result].substring(0,expression_types[result].length-2);
-		}
-        return to_return;
-      }, head);
-    }
 
 access_array = head:function_call tail:(_ access_array_)* {
       let to_return = tail.reduce(function(result, element) {
         let to_return = result + element[1];
-        if((expression_types[result] !== undefined) && expression_types[result].endsWith("[]")){
-			expression_types[to_return] = expression_types[result].substring(0,expression_types[result].length-2);
-		}
         return to_return;
       }, head);
       return to_return;
     }
 
-access_array_ = "[" _ a:e _ "]" {expression_types[a] = "float"; let to_return = "["+a+"]"; initial_value[to_return] = function(){return "[" + initial_value[a]() + "]";}; return to_return;}
+access_array_ = "[" _ a:e _ "]" {let to_return = "["+a+"]"; return to_return;}
 
 function_call
   = head:callable type_params:type_params_string tail:(_ function_call_ / "") {
-	  var split_head = head.split(".");
-      if(split_head.length === 2 && split_head[0] === "compiled_Math" && (["compiled_round","compiled_sin","compiled_asin","compiled_acos","compiled_atan","compiled_asinh","compiled_acosh","compiled_atanh","compiled_min","compiled_max","compiled_cos","compiled_tan","compiled_sinh","compiled_cosh","compiled_tanh","compiled_abs","compiled_floor","compiled_ceil","compiled_exp","compiled_pow","compiled_log","compiled_log2","compiled_sqrt","compiled_trunc","compiled_sign"].indexOf(split_head[1]) !== -1)){
-	      let to_return = split_head[1].substring("compiled_".length,split_head[1].length) + tail[1];
-	      expression_types[to_return] = "float";
-	      return to_return;
-      }
-      else if(head === "compiled_Number"){
-		  let to_return = "float" + tail[1];
-	      expression_types[to_return] = "float";
-	      return to_return;
-      }
-      else if(head === "compiled_typeof"){
-		  return "decltype"+tail[1];
-      }
-      else if(head === "compiled_Boolean"){
-		  let to_return = "float" + tail[1];
-	      expression_types[to_return] = "bool";
-	      return to_return;
-      }
-      else if(tail.length > 0){
+      if(tail.length > 0){
 		return head+tail[1];
 	  }
 	  else{
@@ -326,7 +238,7 @@ function_call
 
 function_call_ = "(" _ a2:exprs _ ")" {return "("+a2+")";}
 
-not_expr= a1:"!" _ a2:access_array {let to_return = "!"+a2; expression_types[a2] = "bool"; expression_types[to_return] = "bool"; return to_return;} / access_array
+not_expr= a1:"!" _ a2:access_array {let to_return = "!"+a2; return to_return;} / access_array
 
 object_member = a1:var_name _ ":" _ e1:e {return "decltype("+e1+") "+a1+" = "+e1+";";}
 
@@ -348,11 +260,11 @@ enum_members = head:enum_member tail:(_ (',') _ enum_member)* {
       }, head);
     } / "" {return "";}
 
-anonymous_function = "function" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
-		return "[]("+params+"){"+body+"}"
-	}
-	/ "function" _ "(" _ params:function_parameters _ ")" _ ":" _ t1:type _ "{" _ body:statements _ "}" {
-		return "[]("+params+") ->"+t1+"{"+body+"}"
+anonymous_function = "function" _ "(" _ params:function_parameters _ ")" t1:return_type_string "{" _ body:statements _ "}" {
+		if(t1 === "auto")
+			return "[]("+params+"){"+body+"}";
+		else
+			return "[]("+params+") ->"+t1+"{"+body+"}";
 	}
 
 anonymous_class = "class" _ super_class:super_class_string _ "{" _ a4:class_statements _ "}" {
@@ -366,12 +278,12 @@ anonymous_type = "{" _ a:object_members _ "}" {
 initializer_list = "[" a2:array_exprs "]" {return "std::vector{"+a2[1]+"}";}
 
 callable=
-	a:NUMBER {expression_types[a] = "float"; return a;}
+	a:NUMBER {return a;}
 	/ "new" __ a:dot_expr "(" b:exprs ")" {return a+"("+b+")"}	
 	/ dot_expr
 
 dot_expr_ = 
-	"(" _ a2:e _ ")" {let to_return  ="("+a2+")"; expression_types[to_return] = expression_types[a2]; return to_return;}
+	"(" _ a2:e _ ")" {let to_return  ="("+a2+")"; return to_return;}
 	/ initializer_list
 	/ anonymous_type
 	/ anonymous_function
@@ -390,16 +302,12 @@ dot_expr = head:dot_expr_ tail:(_ v1)* {
 v1 = a:('.') _ b:var_name {return a+b;} / function_call_ / access_array_
 
 
-function_parameter = a1:var_name _ ":" _ t1:type _ "=" _ d:e  {return [t1+" "+a1+" = " + d];}
-/ a1:var_name _ "=" _ d:e  {return ["auto "+a1+" = " + d];}
-/ a1:var_name _ ":" _ t1:type {return [t1+" "+a1];}
-/ a1:var_name {return ["auto "+a1];}
+function_parameter = a1:var_name t1:return_type_string d:(_ "=" _ d1:e {return " = " + d1;} / "")  {return [t1 + " " + a1 + d];}
 
-function_parameters = head:function_parameter tail:(_ (',') _ function_parameter)* {
+function_parameters = head:function_parameter tail:((',') function_parameter)* {
       return (tail.reduce(function(result, element) {
-        return result.concat(element[3]);
-      }, head)).map(function(value,index){initial_value[value]=function(){return "arguments["+index+"]";};
-		  //alert(initial_value[value]);
+        return result.concat(element[1]);
+      }, head)).map(function(value,index){
 		  return value;}).join(",");
     } / "" {return "";}
 
@@ -411,7 +319,6 @@ exprs = head:e tail:(_ (',') _ e)* {
 
 array_exprs = head:e tail:(_ (',') _ e)* {
       return [head,tail.reduce(function(result, element) {
-        type_in_arr = expression_types[element[3]];
         return result + element[1] + element[3];
       }, head)];
     } / "";
@@ -428,7 +335,6 @@ elif_ = a1:else_if _ "(" _ a3:e _ ")" _ a5:bracket_statements {return "else if("
 var_name= name:IDENTIFIER {
 let to_return = "";
 if(name == "this") to_return = "self"; else if(["true","false","undefined","void","break","continue","arguments"].includes(name)) to_return = name; else to_return = (name === "number"?"double":name==="boolean"?"bool":name==="any"?"auto":"compiled_"+name);
-if(initial_value[to_return] === undefined){initial_value[to_return] = function(){return to_return;};}
 return to_return;
 }
 
@@ -437,7 +343,7 @@ bracket_statements= "{" _ a2:statements _ "}" {return a2;} / a1:statement_with_s
 IDENTIFIER = [a-zA-Z_][a-zA-Z0-9_]* {return text();}
 STRING_LITERAL = '"' @$([^"\\] / "\\" .)* '"'
 
-NUMBER = a:Integer b:NUMBER_ {let to_return =  a+"."+b; initial_value[to_return] = function(){return to_return;}; return to_return;}
+NUMBER = a:Integer b:NUMBER_ {let to_return =  a+"."+b; return to_return;}
 NUMBER_ = "." a:Integer {return a;} / ("." / "") {return "";}
 
 Integer "integer"

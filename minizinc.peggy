@@ -195,7 +195,7 @@ statement_with_semicolon
    / c1:const_or_var __ name:var_name _ ":" _ t1:type _ "=" _ val:e {
 		initial_value[name]=function(){return val;}; return c1+t1+" " + name + " = "+val;
    }
-   / name:assignable _ a2:"=" _ val:e {
+   / name:dot_expr _ a2:"=" _ val:e {
    		initial_value[name]=function(){return val;};
    		if(temp_vars.indexOf(val) !== -1){declared_redundant_vars[val] = name; return "";}
 		else{
@@ -281,16 +281,6 @@ e1= head:not_expr tail:(_ ('*' / '/' / '%') _ not_expr)* {
     }
     / '-' _ a2:e1
         {let to_return = "-"+a2; initial_value[to_return] = function(){return initial_value[a2]();}; return to_return;}
-
-assignable = head:dot_expr tail:(_ access_array_)* {
-      let to_return = tail.reduce(function(result, element) {
-        let to_return = result + element[1];
-        if((expression_types[result] !== undefined) && expression_types[result].endsWith("[]")){
-			expression_types[to_return] = expression_types[result].substring(0,expression_types[result].length-2);
-		}
-        return to_return;
-      }, head);
-    }
 
 access_array = head:function_call tail:(_ access_array_)* {
       let to_return = tail.reduce(function(result, element) {

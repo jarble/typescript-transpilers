@@ -160,15 +160,15 @@ statement_with_semicolon
    / "const" __ name:var_name _ ":" _ t1:type _ "=" _ val:e {
 		initial_value[name]=function(){return val;}; return "const " + " "+t1+" = "+val;
    }
-   / name:assignable _ a2:"=" _ val:e {
+   / name:dot_expr _ a2:"=" _ val:e {
    		initial_value[name]=function(){return val;};
    		if(temp_vars.indexOf(val) !== -1){declared_redundant_vars[val] = name; return "";}
 		else{
 			return name+a2+val;
 		}
    }
-   / a1:assignable _ a2:("++" / "--") {return a1+a2;}
-   / a1:assignable _ a2:("+=" / "%=" / "-=" / "*=" / "/=") _ a3:e {return a1+a2+a3;}
+   / a1:dot_expr _ a2:("++" / "--") {return a1+a2;}
+   / a1:dot_expr _ a2:("+=" / "%=" / "-=" / "*=" / "/=") _ a3:e {return a1+a2+a3;}
    / var_name
 
 
@@ -249,15 +249,6 @@ e1= head:not_expr tail:(_ ('*' / '/' / '%') _ not_expr)* {
     / '-' _ a2:e1
         {let to_return = "-"+a2; initial_value[to_return] = function(){return initial_value[a2]();}; return to_return;}
 
-assignable = head:dot_expr tail:(_ access_array_)* {
-      let to_return = tail.reduce(function(result, element) {
-        let to_return = result + element[1];
-        if((expression_types[result] !== undefined) && expression_types[result].endsWith("[]")){
-			expression_types[to_return] = expression_types[result].substring(0,expression_types[result].length-2);
-		}
-        return to_return;
-      }, head);
-    }
 
 access_array = head:function_call tail:(_ access_array_)* {
       let to_return = tail.reduce(function(result, element) {
@@ -335,7 +326,7 @@ callable=
 	
 	
 	}
-	/ "function" _ "(" _ params:function_parameters _ ")" _ t1:type _ "{" _ body:statements _ "}" {
+	/ "function" _ "(" _ params:function_parameters _ ")" _ t1:return_type_string _ "{" _ body:statements _ "}" {
 		return "func("+params+") "+t1+"{"+body+"}";
 	}
 	/ "class" _ super_class:super_class_string _ "{" _ a4:class_statements _ "}" {
@@ -344,6 +335,8 @@ callable=
 	/ dot_expr
     / STRING_LITERAL
     / a:NUMBER {expression_types[a] = "float"; return a;}
+
+super_class_string = ( _ "extends" _ v:var_name {return " : "+v;} / "" {return "";})
 
 dot_expr = head:var_name tail:(_ ('.') _ var_name)* {
       let to_return = tail.reduce(function(result, element) {

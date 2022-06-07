@@ -291,7 +291,7 @@ enum_members = head:enum_member tail:(_ (',') _ enum_member)* {
       }, head);
     } / "" {return "";}
 
-anonymous_function = "function" _ "(" _ params:function_parameters _ ")" _ "{" _ body:statements _ "}" {
+anonymous_function = "function" _ "(" _ params:function_parameters _ ")" _ t1:return_type_string "{" _ body:statements _ "}" {
 		return "(("+params+")->{"+body+"})"
 	}
 	/ "function" _ "(" _ params:function_parameters _ ")" _ ":" _ t1:type _ "{" _ body:statements _ "}" {
@@ -334,9 +334,7 @@ dot_expr = head:dot_expr_ tail:(_ v1)* {
 
 v1 = a:('.') _ b:var_name {return a+b;} / function_call_ / access_array_
 
-function_parameter = a1:var_name _ ":" _ t1:type _ "=" _ d:e  {return [t1+" "+a1+" = " + d];}
-/ a1:var_name _ "=" _ d:e  {return ["Object "+a1+" = " + d];}
-/ a1:var_name _ ":" _ t1:type {return [t1+" "+a1];}
+function_parameter = a1:var_name _ ":" _ t1:type {return [t1+" "+a1];}
 / a1:var_name {return ["Object "+a1];}
 
 function_parameters = head:function_parameter tail:(_ (',') _ function_parameter)* {
