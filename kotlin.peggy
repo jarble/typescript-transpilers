@@ -395,6 +395,7 @@ function_parameter = a1:var_name _ ":" _ t1:type _ "=" _ d:e  {return [t1+" "+a1
 / a1:var_name _ "=" _ d:e  {return ["dynamic "+a1+" = " + d];}
 / a1:var_name _ ":" _ t1:type {return [t1+" "+a1];}
 / a1:var_name {return ["dynamic "+a1];}
+/ "..." a1:var_name _ ":" _ t1:type "[]" {return ["vararg " + a1+": "+t1];}
 
 function_parameters = head:function_parameter tail:(_ (',') _ function_parameter)* {
       return (tail.reduce(function(result, element) {
