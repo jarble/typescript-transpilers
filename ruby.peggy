@@ -365,6 +365,8 @@ anonymous_class = "class" _ super_class:("extends" __ var_name / "") _ "{" _ a4:
 		return "Class.new do "+a4(name)+" end";
 	}
 
+return_type_string = ":" _ t1:type _ {return t1;}  / "" {return "";}
+
 callable=
 	a:NUMBER {expression_types[a] = "float"; return a;}
 	/ new_instance

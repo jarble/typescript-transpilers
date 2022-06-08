@@ -377,6 +377,9 @@ dot_expr_ =
 	/ var_name
 	/ STRING_LITERAL
 
+type_params_string = "<" _ t1:type_parameters _ ">" _ {return "<"+t1+">";} / "" {return "";}	
+return_type_string = ":" _ t1:type _ {return t1;}  / "" {return "Dynamic";}
+
 dot_expr = head:dot_expr_ tail:(_ v1)* {
       let to_return = tail.reduce(function(result, element) {
         return result + element[1];
